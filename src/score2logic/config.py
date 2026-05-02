@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import os
 import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
-
-from pydantic import BaseModel, ConfigDict, Field
 
 AUDIVERIS_ENV = "SCORE2LOGIC_AUDIVERIS_CMD"
 MUSESCORE_ENV = "SCORE2LOGIC_MUSESCORE_CMD"
@@ -53,12 +52,11 @@ class CommandResolutionError(RuntimeError):
         return "\n".join(lines)
 
 
-class AppConfig(BaseModel):
+@dataclass
+class AppConfig:
     """Runtime configuration for score conversion."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    workdir: Path = Field(default=Path("score2logic-work"))
+    workdir: Path = field(default_factory=lambda: Path("score2logic-work"))
     audiveris_cmd: str | None = None
     musescore_cmd: str | None = None
     keep: bool = False

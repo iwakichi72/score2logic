@@ -18,8 +18,12 @@ MVPでは、独自OMRエンジンもローカルLLMも使いません。処理�
 - `.tif`
 - `.tiff`
 - `.pdf`
+- `.heic`
+- `.heif`
 
 PDFはMVPではAudiverisへ直接渡します。完全なPDFページ分割は非対応ですが、将来 `pdf_to_images` のような前処理を追加しやすい構成にしています。
+
+HEIC/HEIFはAudiverisへ直接渡さず、macOS標準の `sips` コマンドで作業ディレクトリ内のPNGへ変換してから処理します。`--keep` を指定した場合、この変換後PNGも中間ファイルとして残ります。
 
 ## インストール
 
@@ -28,8 +32,17 @@ Python 3.12以上を使ってください。
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install ".[dev]"
+python -m pip install --no-compile ".[dev]"
 ```
+
+このリポジトリで開発する場合は、次のセットアップスクリプトも使えます。
+
+```bash
+scripts/setup-dev.sh
+source .venv/bin/activate
+```
+
+このスクリプトは `.venv` を作り直し、依存関係を `--no-cache-dir --no-compile` で入れ、`score2logic` コマンドがリポジトリの `src` を直接読むようにします。
 
 CLIが使えることを確認します。
 
@@ -43,7 +56,17 @@ score2logic --help
 python -m pip install -e ".[dev]"
 ```
 
-新しめのPythonで editable install の `.pth` 読み込みに問題が出る場合は、通常の `python -m pip install ".[dev]"` を使ってください。
+新しめのPythonで editable install の `.pth` 読み込みに問題が出る場合は、通常の `python -m pip install --no-compile ".[dev]"` を使ってください。
+
+この環境のPython 3.14では、通常の `pip install` 後に `.venv` 内の `.py` ファイルが欠け、`ModuleNotFoundError` になることがありました。まずは `--no-compile` 付きのインストールを推奨します。
+
+もし `score2logic --help` が `ModuleNotFoundError` になる場合は、次で作り直してください。
+
+```bash
+scripts/setup-dev.sh
+source .venv/bin/activate
+score2logic --help
+```
 
 ## Audiverisの設定
 
@@ -95,6 +118,7 @@ score2logic doctor
 - Pythonバージョン
 - Audiverisコマンドを解決できるか
 - MuseScoreコマンドを解決できるか
+- HEIC/HEIF前処理用の `sips` が見つかるか
 - 作業ディレクトリに書き込めるか
 - `PATH` の一部
 
@@ -107,6 +131,7 @@ score2logic doctor
 ```bash
 score2logic convert input.png --out output.mid
 score2logic convert input.pdf --out output.mid
+score2logic convert input.heic --out output.mid
 ```
 
 中間ファイルと詳細ログを確認したい場合:
@@ -158,7 +183,21 @@ score2logic convert /path/to/input.png --out output.mid
 
 ### 未対応の拡張子
 
-対応している拡張子は `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.pdf` です。
+対応している拡張子は `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.pdf`, `.heic`, `.heif` です。
+
+### HEIC/HEIFのPNG変換に失敗する
+
+HEIC/HEIF入力は、macOS標準の `sips` コマンドでPNGへ変換してからAudiverisに渡します。まず次を確認してください。
+
+```bash
+which sips
+```
+
+詳細を見たい場合は、中間PNGを残して実行します。
+
+```bash
+score2logic convert input.heic --out output.mid --keep --verbose
+```
 
 ### Audiverisコマンドが見つからない
 

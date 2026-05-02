@@ -5,7 +5,16 @@ import uuid
 from pathlib import Path
 from typing import Iterable
 
-SUPPORTED_INPUT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".pdf"}
+HEIC_INPUT_EXTENSIONS = {".heic", ".heif"}
+SUPPORTED_INPUT_EXTENSIONS = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".tif",
+    ".tiff",
+    ".pdf",
+    *HEIC_INPUT_EXTENSIONS,
+}
 MUSICXML_EXTENSIONS = {".musicxml", ".mxl", ".xml"}
 
 
@@ -36,6 +45,10 @@ class UnsupportedInputError(FileValidationError):
 
 def is_supported_input_path(path: Path | str) -> bool:
     return Path(path).suffix.lower() in SUPPORTED_INPUT_EXTENSIONS
+
+
+def is_heic_input_path(path: Path | str) -> bool:
+    return Path(path).suffix.lower() in HEIC_INPUT_EXTENSIONS
 
 
 def ensure_existing_file(path: Path | str) -> Path:

@@ -16,7 +16,16 @@ from score2logic.utils.files import (
 
 @pytest.mark.parametrize(
     "filename",
-    ["score.png", "score.JPG", "score.jpeg", "score.tif", "score.TIFF", "score.pdf"],
+    [
+        "score.png",
+        "score.JPG",
+        "score.jpeg",
+        "score.tif",
+        "score.TIFF",
+        "score.pdf",
+        "score.HEIC",
+        "score.heif",
+    ],
 )
 def test_supported_input_extensions(filename: str) -> None:
     assert is_supported_input_path(Path(filename))

@@ -143,6 +143,92 @@ def test_pipeline_uses_latest_musicxml_and_generates_midi(
     assert result.selected_musicxml.name == "newer.musicxml"
 
 
+def test_pipeline_converts_heic_input_for_audiveris(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    input_file = tmp_path / "score.heic"
+    input_file.write_bytes(b"heic")
+    workdir = tmp_path / "work"
+    prepared_png = workdir / "score.score2logic.png"
+
+    monkeypatch.setattr("score2logic.pipeline.resolve_audiveris_command", lambda _: "/bin/audiveris")
+    monkeypatch.setattr("score2logic.pipeline.resolve_musescore_command", lambda _: "/bin/mscore")
+
+    def fake_prepare(input_path, workdir, **kwargs):
+        prepared_png.parent.mkdir(parents=True, exist_ok=True)
+        prepared_png.write_bytes(b"png")
+        return prepared_png
+
+    def fake_audiveris(**kwargs):
+        assert kwargs["input_path"] == prepared_png
+        musicxml = workdir / "score.musicxml"
+        musicxml.write_text("<score-partwise />", encoding="utf-8")
+        return [musicxml]
+
+    def fake_musescore(musicxml_path, output_midi_path, **kwargs):
+        output_midi_path.write_bytes(b"MThd")
+        return output_midi_path
+
+    monkeypatch.setattr("score2logic.pipeline.convert_heic_to_png", fake_prepare)
+    monkeypatch.setattr("score2logic.pipeline.run_audiveris", fake_audiveris)
+    monkeypatch.setattr("score2logic.pipeline.convert_musicxml_to_midi", fake_musescore)
+
+    result = convert_score_to_midi(
+        input_file,
+        tmp_path / "out.mid",
+        AppConfig(workdir=workdir),
+    )
+
+    assert result.input_path == input_file
+    assert result.omr_input_path == prepared_png
+    assert result.prepared_files == [prepared_png]
+    assert result.output_midi_path.is_file()
+    assert not prepared_png.exists()
+    assert any(path == prepared_png for path in result.cleaned_files)
+
+
+def test_pipeline_keep_retains_prepared_heic_png(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    input_file = tmp_path / "score.heif"
+    input_file.write_bytes(b"heif")
+    workdir = tmp_path / "work"
+    prepared_png = workdir / "score.score2logic.png"
+
+    monkeypatch.setattr("score2logic.pipeline.resolve_audiveris_command", lambda _: "/bin/audiveris")
+    monkeypatch.setattr("score2logic.pipeline.resolve_musescore_command", lambda _: "/bin/mscore")
+
+    def fake_prepare(input_path, workdir, **kwargs):
+        prepared_png.parent.mkdir(parents=True, exist_ok=True)
+        prepared_png.write_bytes(b"png")
+        return prepared_png
+
+    def fake_audiveris(**kwargs):
+        musicxml = workdir / "score.musicxml"
+        musicxml.write_text("<score-partwise />", encoding="utf-8")
+        return [musicxml]
+
+    def fake_musescore(musicxml_path, output_midi_path, **kwargs):
+        output_midi_path.write_bytes(b"MThd")
+        return output_midi_path
+
+    monkeypatch.setattr("score2logic.pipeline.convert_heic_to_png", fake_prepare)
+    monkeypatch.setattr("score2logic.pipeline.run_audiveris", fake_audiveris)
+    monkeypatch.setattr("score2logic.pipeline.convert_musicxml_to_midi", fake_musescore)
+
+    result = convert_score_to_midi(
+        input_file,
+        tmp_path / "out.mid",
+        AppConfig(workdir=workdir, keep=True),
+    )
+
+    assert result.omr_input_path == prepared_png
+    assert prepared_png.exists()
+    assert result.cleaned_files == []
+
+
 def test_pipeline_raises_when_midi_missing(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
