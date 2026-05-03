@@ -138,7 +138,7 @@ score2logic convert input.heic --out output.mid
 
 - 入力ファイル: 指定した場所から読み込みます。元ファイルは変更しません。
 - 出力MIDI: `--out` で指定した場所に生成します。親ディレクトリがなければ作成します。
-- 作業ディレクトリ: `--workdir` で指定します。省略時は `./score2logic-work` です。
+- 作業ディレクトリ: `--workdir` で指定します。省略時は `./work` です。
 - 変換ログ: 常に作業ディレクトリ内の `score2logic.log` に追記します。
 - MusicXML中間ファイル: Audiverisが作業ディレクトリ配下に生成します。
 - HEIC/HEIF変換後PNG: HEIC/HEIF入力時のみ、作業ディレクトリ内に生成します。
@@ -149,7 +149,7 @@ score2logic convert input.heic --out output.mid
 
 ```bash
 mkdir -p midi
-score2logic convert scans/page1.heic --out midi/page1.mid --workdir score2logic-work --keep
+score2logic convert scans/page1.heic --out midi/page1.mid --workdir work --keep
 ```
 
 中間ファイルと詳細ログを確認したい場合:
@@ -161,7 +161,7 @@ score2logic convert sample.png --out sample.mid --keep --verbose
 主なオプション:
 
 - `--out PATH`: 出力MIDIパス。必須です。
-- `--workdir PATH`: 作業ディレクトリ。省略時は `./score2logic-work` です。
+- `--workdir PATH`: 作業ディレクトリ。省略時は `./work` です。
 - `--audiveris-cmd PATH`: Audiveris実行コマンド。
 - `--musescore-cmd PATH`: MuseScore実行コマンド。
 - `--keep`: 生成されたMusicXMLなどの中間ファイルを残します。
@@ -222,13 +222,13 @@ score2logic convert input.heic --out output.mid --keep --verbose
 環境変数で指定してください。
 
 ```bash
-export SCORE2LOGIC_AUDIVERIS_CMD="/path/to/audiveris"
+export SCORE2LOGIC_AUDIVERIS_CMD="/Applications/Audiveris.app/Contents/MacOS/Audiveris"
 ```
 
 またはオプションで渡してください。
 
 ```bash
---audiveris-cmd "/path/to/audiveris"
+--audiveris-cmd "/Applications/Audiveris.app/Contents/MacOS/Audiveris"
 ```
 
 ### MuseScoreコマンドが見つからない
@@ -242,7 +242,7 @@ export SCORE2LOGIC_MUSESCORE_CMD="/Applications/MuseScore 4.app/Contents/MacOS/m
 またはオプションで渡してください。
 
 ```bash
---musescore-cmd "/path/to/mscore"
+--musescore-cmd "/Applications/MuseScore 4.app/Contents/MacOS/mscore"
 ```
 
 ### MusicXMLが生成されない
@@ -256,7 +256,7 @@ score2logic convert input.png --out output.mid --keep --verbose
 その後、作業ディレクトリを確認します。
 
 ```bash
-open score2logic-work
+open work
 ```
 
 低解像度のスキャン、傾いた画像、手書き楽譜、複雑なレイアウトではAudiverisの認識に失敗することがあります。

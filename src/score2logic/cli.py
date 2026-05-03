@@ -53,7 +53,7 @@ def _build_parser() -> argparse.ArgumentParser:
     doctor.add_argument(
         "--workdir",
         type=Path,
-        default=Path("score2logic-work"),
+        default=Path("work"),
         help="書き込み可能か確認する作業ディレクトリ。",
     )
     doctor.add_argument("--audiveris-cmd", help="Audiverisの実行パスまたはコマンド名。")
@@ -73,7 +73,7 @@ def _build_parser() -> argparse.ArgumentParser:
     convert.add_argument(
         "--workdir",
         type=Path,
-        default=Path("score2logic-work"),
+        default=Path("work"),
         help="ログと中間ファイルを置く作業ディレクトリ。",
     )
     convert.add_argument("--audiveris-cmd", help="Audiverisの実行パスまたはコマンド名。")

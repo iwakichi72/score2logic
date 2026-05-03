@@ -56,7 +56,7 @@ class CommandResolutionError(RuntimeError):
 class AppConfig:
     """Runtime configuration for score conversion."""
 
-    workdir: Path = field(default_factory=lambda: Path("score2logic-work"))
+    workdir: Path = field(default_factory=lambda: Path("work"))
     audiveris_cmd: str | None = None
     musescore_cmd: str | None = None
     keep: bool = False
