@@ -1,10 +1,10 @@
 # score2logic
 
-score2logic は、Mac上で楽譜画像またはPDFを読み込み、Logic Proに取り込めるMIDIファイルを生成するCLIツールです。
+score2logic は、Mac上で楽譜画像を読み込み、Logic Proに取り込めるMIDIファイルを生成するCLIツールです。
 
 MVPでは、独自OMRエンジンもローカルLLMも使いません。処理は次の外部ツールに委譲します。
 
-1. 楽譜画像/PDFからMusicXMLへの変換: Audiveris
+1. 楽譜画像からMusicXMLへの変換: Audiveris
 2. MusicXMLからMIDIへの変換: MuseScore CLI
 3. MIDIの読み込み・編集: Logic Pro
 
@@ -17,11 +17,10 @@ MVPでは、独自OMRエンジンもローカルLLMも使いません。処理�
 - `.jpeg`
 - `.tif`
 - `.tiff`
-- `.pdf`
 - `.heic`
 - `.heif`
 
-PDFはMVPではAudiverisへ直接渡します。完全なPDFページ分割は非対応ですが、将来 `pdf_to_images` のような前処理を追加しやすい構成にしています。
+PDF入力は一旦非対応です。必要になったら `pdf_to_images` のような前処理として追加する方針です。
 
 HEIC/HEIFはAudiverisへ直接渡さず、macOS標準の `sips` コマンドで作業ディレクトリ内のPNGへ変換してから処理します。`--keep` を指定した場合、この変換後PNGも中間ファイルとして残ります。
 
@@ -65,12 +64,14 @@ score2logic --help
 ## Audiverisの設定
 
 Audiverisは別途インストールしてください。そのうえで、score2logicから実行できるようにします。
+macOSで通常の `/Applications/Audiveris.app` に入っている場合は自動検出します。
 
 コマンド解決の優先順位は次のとおりです。
 
 1. `--audiveris-cmd`
 2. 環境変数 `SCORE2LOGIC_AUDIVERIS_CMD`
 3. `PATH` 上の `audiveris`
+4. macOSの `/Applications/Audiveris.app/Contents/MacOS/Audiveris`
 
 環境変数で指定する例:
 
@@ -87,6 +88,7 @@ score2logic convert input.png --out output.mid --audiveris-cmd "/path/to/audiver
 ## MuseScore CLIの設定
 
 MuseScoreも別途インストールしてください。macOSのMuseScore 4では、CLI実行ファイルが次の場所にあることがあります。
+この場所に入っている場合は自動検出します。
 
 ```bash
 export SCORE2LOGIC_MUSESCORE_CMD="/Applications/MuseScore 4.app/Contents/MacOS/mscore"
@@ -98,6 +100,7 @@ export SCORE2LOGIC_MUSESCORE_CMD="/Applications/MuseScore 4.app/Contents/MacOS/m
 2. 環境変数 `SCORE2LOGIC_MUSESCORE_CMD`
 3. `PATH` 上の `mscore`
 4. `PATH` 上の `musescore`
+5. macOSのMuseScoreアプリ内CLI候補 (`/Applications/MuseScore 4.app/Contents/MacOS/mscore` など)
 
 ## doctor
 
@@ -128,7 +131,6 @@ score2logic doctor --warn-only
 
 ```bash
 score2logic convert input.png --out output.mid
-score2logic convert input.pdf --out output.mid
 score2logic convert input.heic --out output.mid
 ```
 
@@ -237,7 +239,7 @@ score2logic convert /path/to/input.png --out output.mid
 
 ### 未対応の拡張子
 
-対応している拡張子は `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.pdf`, `.heic`, `.heif` です。
+対応している拡張子は `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.heic`, `.heif` です。PDFは一旦非対応です。
 
 ### HEIC/HEIFのPNG変換に失敗する
 
@@ -311,5 +313,5 @@ open work
 - 複雑なMusicXML編集
 - 高度なMIDIベロシティ調整
 - Logic Proプロジェクトファイルの直接生成
-- 完全なPDFページ分割
+- PDF入力
 - 複数パートの高度なトラック分離

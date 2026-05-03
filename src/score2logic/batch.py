@@ -14,6 +14,7 @@ from score2logic.utils.files import (
     FileValidationError,
     ensure_directory,
     is_supported_input_path,
+    supported_input_extensions_text,
 )
 
 
@@ -40,7 +41,7 @@ class NoBatchInputFilesError(BatchError):
             "変換対象の入力ファイルが見つかりません。\n"
             f"入力ディレクトリ: {path}\n"
             f"探索範囲: {mode}対応拡張子を探しました。\n"
-            "対応拡張子: .heic, .heif, .jpeg, .jpg, .pdf, .png, .tif, .tiff"
+            f"対応拡張子: {supported_input_extensions_text()}"
         )
 
 

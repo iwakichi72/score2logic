@@ -86,7 +86,7 @@ def convert_score_to_midi(
     output_path: Path | str,
     config: AppConfig,
 ) -> ConversionResult:
-    """Convert a score image/PDF to MIDI through Audiveris and MuseScore."""
+    """Convert a score image to MIDI through Audiveris and MuseScore."""
 
     input_file = ensure_existing_file(input_path)
     ensure_supported_input(input_file)

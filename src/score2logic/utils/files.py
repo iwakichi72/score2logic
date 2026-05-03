@@ -12,7 +12,6 @@ SUPPORTED_INPUT_EXTENSIONS = {
     ".jpeg",
     ".tif",
     ".tiff",
-    ".pdf",
     *HEIC_INPUT_EXTENSIONS,
 }
 MUSICXML_EXTENSIONS = {".musicxml", ".mxl", ".xml"}
@@ -35,12 +34,15 @@ class MissingInputFileError(FileValidationError):
 class UnsupportedInputError(FileValidationError):
     def __init__(self, path: Path) -> None:
         self.path = path
-        supported = ", ".join(sorted(SUPPORTED_INPUT_EXTENSIONS))
         super().__init__(
             "未対応の入力拡張子です。\n"
             f"パス: {path}\n"
-            f"対応拡張子: {supported}"
+            f"対応拡張子: {supported_input_extensions_text()}"
         )
+
+
+def supported_input_extensions_text() -> str:
+    return ", ".join(sorted(SUPPORTED_INPUT_EXTENSIONS))
 
 
 def is_supported_input_path(path: Path | str) -> bool:

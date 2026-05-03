@@ -7,6 +7,14 @@ from pathlib import Path
 
 AUDIVERIS_ENV = "SCORE2LOGIC_AUDIVERIS_CMD"
 MUSESCORE_ENV = "SCORE2LOGIC_MUSESCORE_CMD"
+AUDIVERIS_MACOS_CANDIDATES = [
+    "/Applications/Audiveris.app/Contents/MacOS/Audiveris",
+]
+MUSESCORE_MACOS_CANDIDATES = [
+    "/Applications/MuseScore 4.app/Contents/MacOS/mscore",
+    "/Applications/MuseScore Studio 4.app/Contents/MacOS/mscore",
+    "/Applications/MuseScore.app/Contents/MacOS/mscore",
+]
 
 
 class CommandResolutionError(RuntimeError):
@@ -33,7 +41,7 @@ class CommandResolutionError(RuntimeError):
         if self.configured_value:
             lines.append(f"設定されていた値: {self.configured_value}")
         if self.candidates:
-            lines.append("PATH上で確認した候補: " + ", ".join(self.candidates))
+            lines.append("確認した候補: " + ", ".join(self.candidates))
         lines.extend(
             [
                 "環境変数で指定してください:",
@@ -73,6 +81,7 @@ def resolve_audiveris_command(explicit_cmd: str | None = None) -> str:
         env_var=AUDIVERIS_ENV,
         option_name="--audiveris-cmd",
         path_candidates=["audiveris"],
+        app_candidates=AUDIVERIS_MACOS_CANDIDATES,
     )
 
 
@@ -85,6 +94,7 @@ def resolve_musescore_command(explicit_cmd: str | None = None) -> str:
         env_var=MUSESCORE_ENV,
         option_name="--musescore-cmd",
         path_candidates=["mscore", "musescore"],
+        app_candidates=MUSESCORE_MACOS_CANDIDATES,
     )
 
 
@@ -95,6 +105,7 @@ def _resolve_command(
     env_var: str,
     option_name: str,
     path_candidates: list[str],
+    app_candidates: list[str],
 ) -> str:
     configured_value = _clean_command_value(explicit_cmd)
     if configured_value is not None:
@@ -105,7 +116,7 @@ def _resolve_command(
             tool_name=tool_name,
             env_var=env_var,
             option_name=option_name,
-            candidates=path_candidates,
+            candidates=[*path_candidates, *app_candidates],
             configured_value=configured_value,
         )
 
@@ -118,7 +129,7 @@ def _resolve_command(
             tool_name=tool_name,
             env_var=env_var,
             option_name=option_name,
-            candidates=path_candidates,
+            candidates=[*path_candidates, *app_candidates],
             configured_value=env_value,
         )
 
@@ -127,11 +138,16 @@ def _resolve_command(
         if found:
             return found
 
+    for candidate in app_candidates:
+        resolved = _resolve_configured_command(candidate)
+        if resolved is not None:
+            return resolved
+
     raise CommandResolutionError(
         tool_name=tool_name,
         env_var=env_var,
         option_name=option_name,
-        candidates=path_candidates,
+        candidates=[*path_candidates, *app_candidates],
     )
 
 

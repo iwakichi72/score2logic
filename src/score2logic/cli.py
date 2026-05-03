@@ -52,7 +52,7 @@ def app(argv: list[str] | None = None) -> int:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="score2logic",
-        description="楽譜画像またはPDFを、Logic Proに取り込めるMIDIファイルへ変換します。",
+        description="楽譜画像を、Logic Proに取り込めるMIDIファイルへ変換します。",
     )
     parser.add_argument("--version", action="store_true", help="バージョンを表示して終了します。")
 
@@ -77,7 +77,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "convert",
         help="INPUT_FILEをLogic Proに取り込めるMIDIファイルへ変換します。",
     )
-    convert.add_argument("input_file", type=Path, help="入力する楽譜画像またはPDF。")
+    convert.add_argument("input_file", type=Path, help="入力する楽譜画像。")
     convert.add_argument("--out", required=True, type=Path, help="出力MIDIパス。必須です。")
     convert.add_argument(
         "--workdir",

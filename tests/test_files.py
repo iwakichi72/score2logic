@@ -23,7 +23,6 @@ from score2logic.utils.files import (
         "score.jpeg",
         "score.tif",
         "score.TIFF",
-        "score.pdf",
         "score.HEIC",
         "score.heif",
     ],
@@ -35,6 +34,11 @@ def test_supported_input_extensions(filename: str) -> None:
 def test_unsupported_extension_raises() -> None:
     with pytest.raises(UnsupportedInputError, match="未対応の入力拡張子"):
         ensure_supported_input(Path("score.txt"))
+
+
+def test_pdf_is_not_supported_for_now() -> None:
+    with pytest.raises(UnsupportedInputError, match="未対応の入力拡張子"):
+        ensure_supported_input(Path("score.pdf"))
 
 
 def test_ensure_parent_directory_returns_absolute_output_path(

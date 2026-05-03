@@ -41,9 +41,34 @@ def test_resolve_musescore_prefers_mscore_on_path(monkeypatch: pytest.MonkeyPatc
     assert config.resolve_musescore_command() == "/usr/local/bin/mscore"
 
 
+def test_resolve_audiveris_from_macos_app_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    audiveris = _make_executable(tmp_path / "Audiveris")
+    monkeypatch.delenv(config.AUDIVERIS_ENV, raising=False)
+    monkeypatch.setattr(config.shutil, "which", lambda _: None)
+    monkeypatch.setattr(config, "AUDIVERIS_MACOS_CANDIDATES", [str(audiveris)])
+
+    assert config.resolve_audiveris_command() == str(audiveris)
+
+
+def test_resolve_musescore_from_macos_app_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    musescore = _make_executable(tmp_path / "mscore")
+    monkeypatch.delenv(config.MUSESCORE_ENV, raising=False)
+    monkeypatch.setattr(config.shutil, "which", lambda _: None)
+    monkeypatch.setattr(config, "MUSESCORE_MACOS_CANDIDATES", [str(musescore)])
+
+    assert config.resolve_musescore_command() == str(musescore)
+
+
 def test_resolve_musescore_missing_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(config.MUSESCORE_ENV, raising=False)
     monkeypatch.setattr(config.shutil, "which", lambda _: None)
+    monkeypatch.setattr(config, "MUSESCORE_MACOS_CANDIDATES", [])
 
     with pytest.raises(CommandResolutionError, match="MuseScore コマンドが見つかりません"):
         config.resolve_musescore_command()
