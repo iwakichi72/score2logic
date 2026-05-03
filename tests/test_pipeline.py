@@ -143,6 +143,45 @@ def test_pipeline_uses_latest_musicxml_and_generates_midi(
     assert result.selected_musicxml.name == "newer.musicxml"
 
 
+def test_pipeline_progress_reports_file_locations_and_phases(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    input_file = tmp_path / "score.png"
+    input_file.write_bytes(b"image")
+    workdir = tmp_path / "work"
+
+    monkeypatch.setattr("score2logic.pipeline.resolve_audiveris_command", lambda _: "/bin/audiveris")
+    monkeypatch.setattr("score2logic.pipeline.resolve_musescore_command", lambda _: "/bin/mscore")
+
+    def fake_audiveris(**kwargs):
+        musicxml = workdir / "score.musicxml"
+        musicxml.parent.mkdir(parents=True, exist_ok=True)
+        musicxml.write_text("<score-partwise />", encoding="utf-8")
+        return [musicxml]
+
+    def fake_musescore(musicxml_path, output_midi_path, **kwargs):
+        output_midi_path.write_bytes(b"MThd")
+        return output_midi_path
+
+    monkeypatch.setattr("score2logic.pipeline.run_audiveris", fake_audiveris)
+    monkeypatch.setattr("score2logic.pipeline.convert_musicxml_to_midi", fake_musescore)
+
+    convert_score_to_midi(
+        input_file,
+        tmp_path / "out.mid",
+        AppConfig(workdir=workdir, keep=True, progress=True),
+    )
+
+    captured = capsys.readouterr()
+    assert f"入力: {input_file.resolve()}" in captured.err
+    assert f"出力MIDI: {(tmp_path / 'out.mid').resolve()}" in captured.err
+    assert f"作業ディレクトリ: {workdir.resolve()}" in captured.err
+    assert "Audiverisで楽譜を解析中" in captured.err
+    assert "MuseScoreでMIDIを生成中" in captured.err
+
+
 def test_pipeline_converts_heic_input_for_audiveris(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

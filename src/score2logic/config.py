@@ -61,6 +61,7 @@ class AppConfig:
     musescore_cmd: str | None = None
     keep: bool = False
     verbose: bool = False
+    progress: bool = False
 
 
 def resolve_audiveris_command(explicit_cmd: str | None = None) -> str:

@@ -29,20 +29,22 @@ HEIC/HEIFはAudiverisへ直接渡さず、macOS標準の `sips` コマンドで�
 
 Python 3.12以上を使ってください。
 
+このCLI本体は、外部ツール連携を安定させるためPython標準ライブラリだけで動くようにしています。テスト実行用の依存関係は `.[dev]` にだけ含めています。
+
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install --no-compile ".[dev]"
+python -m pip install --no-compile .
 ```
 
-このリポジトリで開発する場合は、次のセットアップスクリプトも使えます。
+このリポジトリで開発・テストする場合は、次のセットアップスクリプトを推奨します。
 
 ```bash
 scripts/setup-dev.sh
 source .venv/bin/activate
 ```
 
-このスクリプトは `.venv` を作り直し、依存関係を `--no-cache-dir --no-compile` で入れ、`score2logic` コマンドがリポジトリの `src` を直接読むようにします。
+このスクリプトは `.venv` を作り直し、開発用依存関係を `--no-cache-dir --no-compile` で入れ、`score2logic` コマンドがリポジトリの `src` を直接読むようにします。
 
 CLIが使えることを確認します。
 
@@ -50,15 +52,7 @@ CLIが使えることを確認します。
 score2logic --help
 ```
 
-開発中は editable install も使えます。
-
-```bash
-python -m pip install -e ".[dev]"
-```
-
-新しめのPythonで editable install の `.pth` 読み込みに問題が出る場合は、通常の `python -m pip install --no-compile ".[dev]"` を使ってください。
-
-この環境のPython 3.14では、通常の `pip install` 後に `.venv` 内の `.py` ファイルが欠け、`ModuleNotFoundError` になることがありました。まずは `--no-compile` 付きのインストールを推奨します。
+この環境のPython 3.14では、通常の `pip install` 後に `.venv` 内の `.py` ファイルが欠け、`ModuleNotFoundError` になることがありました。まずは `scripts/setup-dev.sh` か、`--no-compile` 付きのインストールを推奨します。
 
 もし `score2logic --help` が `ModuleNotFoundError` になる場合は、次で作り直してください。
 
@@ -122,7 +116,11 @@ score2logic doctor
 - 作業ディレクトリに書き込めるか
 - `PATH` の一部
 
-外部ツールが見つからない場合は、次に試すべき環境変数やCLIオプションを表示します。
+外部ツールが見つからない場合は、次に試すべき環境変数やCLIオプションを表示します。失敗項目がある場合、`doctor` は終了コード `1` で終了します。表示だけ確認して成功扱いにしたい場合は `--warn-only` を指定してください。
+
+```bash
+score2logic doctor --warn-only
+```
 
 ## convert
 
@@ -132,6 +130,26 @@ score2logic doctor
 score2logic convert input.png --out output.mid
 score2logic convert input.pdf --out output.mid
 score2logic convert input.heic --out output.mid
+```
+
+## ファイルの置き場所
+
+`INPUT_FILE` と `--out` は、相対パスでも絶対パスでも指定できます。相対パスは、コマンドを実行した現在のディレクトリから解決されます。
+
+- 入力ファイル: 指定した場所から読み込みます。元ファイルは変更しません。
+- 出力MIDI: `--out` で指定した場所に生成します。親ディレクトリがなければ作成します。
+- 作業ディレクトリ: `--workdir` で指定します。省略時は `./score2logic-work` です。
+- 変換ログ: 常に作業ディレクトリ内の `score2logic.log` に追記します。
+- MusicXML中間ファイル: Audiverisが作業ディレクトリ配下に生成します。
+- HEIC/HEIF変換後PNG: HEIC/HEIF入力時のみ、作業ディレクトリ内に生成します。
+
+通常は、変換成功後にMusicXMLやHEIC/HEIF変換後PNGを削除します。確認したい場合は `--keep` を指定してください。成功時と失敗時のCLI出力には、入力、出力MIDI、作業ディレクトリ、ログの場所を表示します。
+
+例:
+
+```bash
+mkdir -p midi
+score2logic convert scans/page1.heic --out midi/page1.mid --workdir score2logic-work --keep
 ```
 
 中間ファイルと詳細ログを確認したい場合:

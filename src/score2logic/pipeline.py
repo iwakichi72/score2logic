@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -93,18 +94,28 @@ def convert_score_to_midi(
     workdir = ensure_directory(config.workdir)
     output_midi = ensure_parent_directory(output_path)
     log_path = workdir / "score2logic.log"
+
+    _announce(config, f"入力: {input_file}")
+    _announce(config, f"出力MIDI: {output_midi}")
+    _announce(config, f"作業ディレクトリ: {workdir}")
+
+    _announce(config, "外部コマンドを確認中...")
+    audiveris_cmd = resolve_audiveris_command(config.audiveris_cmd)
+    musescore_cmd = resolve_musescore_command(config.musescore_cmd)
+
+    if is_heic_input_path(input_file):
+        _announce(config, "HEIC/HEIFをPNGへ変換中...")
+
     omr_input_file, prepared_files = prepare_input_for_omr(
         input_file=input_file,
         workdir=workdir,
         verbose=config.verbose,
     )
 
-    audiveris_cmd = resolve_audiveris_command(config.audiveris_cmd)
-    musescore_cmd = resolve_musescore_command(config.musescore_cmd)
-
     before_candidates = find_musicxml_files(workdir)
     before_snapshot = snapshot_mtimes(before_candidates)
 
+    _announce(config, "Audiverisで楽譜を解析中...")
     after_candidates = run_audiveris(
         input_path=omr_input_file,
         workdir=workdir,
@@ -120,6 +131,7 @@ def convert_score_to_midi(
 
     selected_musicxml = select_latest_file(candidates_to_consider)
 
+    _announce(config, "MuseScoreでMIDIを生成中...")
     generated_midi = convert_musicxml_to_midi(
         musicxml_path=selected_musicxml,
         output_midi_path=output_midi,
@@ -170,3 +182,8 @@ def prepare_input_for_omr(
         raise PreparedInputNotGeneratedError(input_file, prepared_path)
 
     return prepared_path, [prepared_path]
+
+
+def _announce(config: AppConfig, message: str) -> None:
+    if config.progress:
+        print(f"[score2logic] {message}", file=sys.stderr)

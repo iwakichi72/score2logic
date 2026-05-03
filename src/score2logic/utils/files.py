@@ -52,21 +52,21 @@ def is_heic_input_path(path: Path | str) -> bool:
 
 
 def ensure_existing_file(path: Path | str) -> Path:
-    resolved = Path(path).expanduser()
+    resolved = Path(path).expanduser().resolve()
     if not resolved.is_file():
         raise MissingInputFileError(resolved)
     return resolved
 
 
 def ensure_supported_input(path: Path | str) -> Path:
-    resolved = Path(path).expanduser()
+    resolved = Path(path).expanduser().resolve()
     if not is_supported_input_path(resolved):
         raise UnsupportedInputError(resolved)
     return resolved
 
 
 def ensure_directory(path: Path | str) -> Path:
-    resolved = Path(path).expanduser()
+    resolved = Path(path).expanduser().resolve()
     resolved.mkdir(parents=True, exist_ok=True)
     return resolved
 
@@ -74,11 +74,11 @@ def ensure_directory(path: Path | str) -> Path:
 def ensure_parent_directory(path: Path | str) -> Path:
     resolved = Path(path).expanduser()
     resolved.parent.mkdir(parents=True, exist_ok=True)
-    return resolved
+    return resolved.resolve()
 
 
 def check_writable_directory(path: Path | str) -> tuple[bool, str | None]:
-    directory = Path(path).expanduser()
+    directory = Path(path).expanduser().resolve()
     try:
         directory.mkdir(parents=True, exist_ok=True)
         probe = directory / f".score2logic-write-test-{uuid.uuid4().hex}"

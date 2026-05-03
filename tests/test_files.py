@@ -7,6 +7,7 @@ import pytest
 
 from score2logic.utils.files import (
     UnsupportedInputError,
+    ensure_parent_directory,
     ensure_supported_input,
     find_musicxml_files,
     is_supported_input_path,
@@ -34,6 +35,18 @@ def test_supported_input_extensions(filename: str) -> None:
 def test_unsupported_extension_raises() -> None:
     with pytest.raises(UnsupportedInputError, match="未対応の入力拡張子"):
         ensure_supported_input(Path("score.txt"))
+
+
+def test_ensure_parent_directory_returns_absolute_output_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    output_path = ensure_parent_directory(Path("midi/output.mid"))
+
+    assert output_path == (tmp_path / "midi" / "output.mid").resolve()
+    assert output_path.parent.is_dir()
 
 
 def test_find_musicxml_files_recursively(tmp_path: Path) -> None:
