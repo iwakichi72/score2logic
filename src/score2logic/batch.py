@@ -10,6 +10,7 @@ from score2logic.config import (
 )
 from score2logic.external import CommandExecutionError
 from score2logic.pipeline import ConversionResult, Score2LogicError, convert_score_to_midi
+from score2logic.quality import QualityCheckError
 from score2logic.utils.files import (
     FileValidationError,
     ensure_directory,
@@ -183,6 +184,7 @@ def run_batch(
         except (
             FileValidationError,
             CommandExecutionError,
+            QualityCheckError,
             Score2LogicError,
         ) as exc:
             results.append(BatchItemResult(item, conversion=None, error=exc))

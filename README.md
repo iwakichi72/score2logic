@@ -220,6 +220,16 @@ mscore INPUT.musicxml -o OUTPUT.mid
 
 Audiverisの出力場所は環境や入力によって変わることがあるため、score2logicは作業ディレクトリ配下から `.musicxml`, `.mxl`, `.xml` を再帰的に探します。複数見つかった場合は候補を表示し、基本的には最新のファイルを使います。
 
+## 品質チェック
+
+変換後に、MusicXMLとMIDIへ軽い品質チェックを行います。
+
+- MusicXMLがXMLとして読めない場合は、MuseScore変換前にエラーにします。
+- MusicXMLに `part` や `note` が見つからない場合は警告します。
+- MIDIが空、極端に小さい、`MThd` ヘッダが見つからない場合は警告します。
+
+警告は変換自体を止めません。Logic Proへ読み込む前に、生成されたMIDIや `--keep` で残したMusicXMLを確認する目安として使ってください。
+
 ## Logic Proへの取り込み
 
 1. score2logicで `.mid` を生成します。

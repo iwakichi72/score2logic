@@ -12,6 +12,7 @@ from score2logic.pipeline import (
     MusicXMLNotGeneratedError,
     convert_score_to_midi,
 )
+from score2logic.quality import MusicXMLValidationError
 from score2logic.utils.files import UnsupportedInputError
 
 
@@ -141,6 +142,38 @@ def test_pipeline_uses_latest_musicxml_and_generates_midi(
 
     assert result.output_midi_path.is_file()
     assert result.selected_musicxml.name == "newer.musicxml"
+    assert {warning.code for warning in result.quality_warnings} == {
+        "musicxml-no-part",
+        "musicxml-no-note",
+        "midi-too-small",
+    }
+
+
+def test_pipeline_raises_when_musicxml_is_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    input_file = tmp_path / "score.png"
+    input_file.write_bytes(b"image")
+    workdir = tmp_path / "work"
+
+    monkeypatch.setattr("score2logic.pipeline.resolve_audiveris_command", lambda _: "/bin/audiveris")
+    monkeypatch.setattr("score2logic.pipeline.resolve_musescore_command", lambda _: "/bin/mscore")
+
+    def fake_audiveris(**kwargs):
+        musicxml = workdir / "score.musicxml"
+        musicxml.parent.mkdir(parents=True, exist_ok=True)
+        musicxml.write_text("<score-partwise>", encoding="utf-8")
+        return [musicxml]
+
+    monkeypatch.setattr("score2logic.pipeline.run_audiveris", fake_audiveris)
+
+    with pytest.raises(MusicXMLValidationError, match="MusicXMLを読み取れません"):
+        convert_score_to_midi(
+            input_file,
+            tmp_path / "out.mid",
+            AppConfig(workdir=workdir),
+        )
 
 
 def test_pipeline_progress_reports_file_locations_and_phases(

@@ -7,6 +7,7 @@ import pytest
 from score2logic import cli
 from score2logic.config import CommandResolutionError
 from score2logic.pipeline import ConversionResult
+from score2logic.quality import QualityWarning
 
 
 def _missing_command(tool_name: str, env_var: str, option_name: str) -> CommandResolutionError:
@@ -115,6 +116,37 @@ def test_error_output_includes_log_path(
     assert "boom" in captured.err
     assert f"ログ: {log_path}" in captured.err
     assert "まだログは作成されていません" in captured.err
+
+
+def test_success_output_prints_quality_warnings(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    warning = QualityWarning(
+        code="midi-too-small",
+        message="MIDIファイルが非常に小さいです。",
+        path=tmp_path / "out.mid",
+    )
+    result = ConversionResult(
+        input_path=tmp_path / "score.png",
+        omr_input_path=tmp_path / "score.png",
+        output_midi_path=tmp_path / "out.mid",
+        workdir=tmp_path / "work",
+        log_path=tmp_path / "work" / "score2logic.log",
+        musicxml_candidates=[tmp_path / "work" / "score.musicxml"],
+        selected_musicxml=tmp_path / "work" / "score.musicxml",
+        audiveris_cmd="audiveris",
+        musescore_cmd="mscore",
+        prepared_files=[],
+        cleaned_files=[],
+        quality_warnings=[warning],
+    )
+
+    cli._print_success(result)
+
+    captured = capsys.readouterr()
+    assert "品質チェック警告" in captured.out
+    assert "midi-too-small" in captured.out
 
 
 def test_batch_dry_run_prints_plan(

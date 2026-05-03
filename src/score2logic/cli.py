@@ -27,6 +27,7 @@ from score2logic.pipeline import (
     Score2LogicError,
     convert_score_to_midi,
 )
+from score2logic.quality import QualityCheckError, QualityWarning
 from score2logic.utils.files import FileValidationError, check_writable_directory
 
 
@@ -197,6 +198,7 @@ def _convert(args: argparse.Namespace) -> int:
         FileValidationError,
         CommandResolutionError,
         CommandExecutionError,
+        QualityCheckError,
         Score2LogicError,
     ) as exc:
         _print_error(exc, log_path=log_path)
@@ -315,6 +317,8 @@ def _print_success(result: ConversionResult) -> None:
     if result.cleaned_files:
         print("中間ファイルを削除しました。残したい場合は --keep を指定してください。")
 
+    _print_quality_warnings(result.quality_warnings)
+
 
 def _print_batch_plan(plan: BatchPlan) -> None:
     print("score2logic batch dry-run")
@@ -346,12 +350,21 @@ def _print_batch_result(result: BatchResult) -> None:
     print(f"実行: {result.attempted_count}件")
     print(f"成功: {result.success_count}件")
     print(f"失敗: {result.failure_count}件")
+    warning_count = sum(
+        len(item.conversion.quality_warnings)
+        for item in result.items
+        if item.conversion is not None
+    )
+    print(f"警告: {warning_count}件")
 
     if result.success_count:
         print("成功:")
         for item in result.items:
             if item.succeeded:
                 print(f"  OK {item.plan_item.input_path} -> {item.plan_item.output_midi_path}")
+                if item.conversion is not None:
+                    for warning in item.conversion.quality_warnings:
+                        print(f"     警告: {warning.format()}")
 
     if result.failure_count:
         print("失敗:")
@@ -369,6 +382,14 @@ def _first_error_line(exc: Exception | None) -> str:
     if not message:
         return exc.__class__.__name__
     return message.splitlines()[0]
+
+
+def _print_quality_warnings(warnings: list[QualityWarning]) -> None:
+    if not warnings:
+        return
+    print("品質チェック警告:")
+    for warning in warnings:
+        print(f"  {warning.format()}")
 
 
 def _reveal_in_finder(path: Path) -> None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from score2logic.config import (
@@ -12,6 +12,7 @@ from score2logic.config import (
 from score2logic.external.audiveris import run_audiveris
 from score2logic.external.musescore import convert_musicxml_to_midi
 from score2logic.external.sips import convert_heic_to_png
+from score2logic.quality import QualityWarning, inspect_midi, inspect_musicxml
 from score2logic.utils.files import (
     changed_since_snapshot,
     ensure_directory,
@@ -79,6 +80,7 @@ class ConversionResult:
     musescore_cmd: str
     prepared_files: list[Path]
     cleaned_files: list[Path]
+    quality_warnings: list[QualityWarning] = field(default_factory=list)
 
 
 def convert_score_to_midi(
@@ -130,6 +132,7 @@ def convert_score_to_midi(
         raise MusicXMLNotGeneratedError(workdir)
 
     selected_musicxml = select_latest_file(candidates_to_consider)
+    quality_warnings = inspect_musicxml(selected_musicxml)
 
     _announce(config, "MuseScoreでMIDIを生成中...")
     generated_midi = convert_musicxml_to_midi(
@@ -142,6 +145,8 @@ def convert_score_to_midi(
 
     if not generated_midi.is_file():
         raise MidiNotGeneratedError(generated_midi)
+
+    quality_warnings.extend(inspect_midi(generated_midi))
 
     cleaned_files: list[Path] = []
     if not config.keep:
@@ -159,6 +164,7 @@ def convert_score_to_midi(
         musescore_cmd=musescore_cmd,
         prepared_files=prepared_files,
         cleaned_files=cleaned_files,
+        quality_warnings=quality_warnings,
     )
 
 
