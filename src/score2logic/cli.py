@@ -8,6 +8,13 @@ import sys
 from pathlib import Path
 
 from score2logic import __version__
+from score2logic.batch import (
+    BatchError,
+    BatchPlan,
+    BatchResult,
+    build_batch_plan,
+    run_batch,
+)
 from score2logic.config import (
     AppConfig,
     CommandResolutionError,
@@ -35,6 +42,8 @@ def app(argv: list[str] | None = None) -> int:
         return _doctor(args)
     if args.command == "convert":
         return _convert(args)
+    if args.command == "batch":
+        return _batch(args)
 
     parser.print_help()
     return 2
@@ -86,6 +95,32 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Finderで出力MIDIを表示します。",
     )
     convert.add_argument("--verbose", action="store_true", help="実行コマンドと詳細出力を表示します。")
+
+    batch = subparsers.add_parser(
+        "batch",
+        help="ディレクトリ内の楽譜ファイルを一括でMIDIへ変換します。",
+    )
+    batch.add_argument("input_dir", type=Path, help="入力楽譜ファイルを置いたディレクトリ。")
+    batch.add_argument("--outdir", required=True, type=Path, help="MIDIファイルの出力ディレクトリ。")
+    batch.add_argument(
+        "--workdir",
+        type=Path,
+        default=Path("work"),
+        help="ログと中間ファイルを置く作業ディレクトリ。",
+    )
+    batch.add_argument("--audiveris-cmd", help="Audiverisの実行パスまたはコマンド名。")
+    batch.add_argument("--musescore-cmd", help="MuseScoreの実行パスまたはコマンド名。")
+    batch.add_argument("--keep", action="store_true", help="中間ファイルを残します。")
+    batch.add_argument("--recursive", action="store_true", help="入力ディレクトリを再帰的に探索します。")
+    batch.add_argument("--fail-fast", action="store_true", help="最初の失敗で一括変換を停止します。")
+    batch.add_argument("--dry-run", action="store_true", help="変換せず、対象ファイルと出力先だけ表示します。")
+    batch.add_argument(
+        "--open",
+        action="store_true",
+        dest="open_finder",
+        help="完了後にFinderで出力ディレクトリを表示します。",
+    )
+    batch.add_argument("--verbose", action="store_true", help="実行コマンドと詳細出力を表示します。")
 
     return parser
 
@@ -175,6 +210,47 @@ def _convert(args: argparse.Namespace) -> int:
     return 0
 
 
+def _batch(args: argparse.Namespace) -> int:
+    config = AppConfig(
+        workdir=args.workdir,
+        audiveris_cmd=args.audiveris_cmd,
+        musescore_cmd=args.musescore_cmd,
+        keep=args.keep,
+        verbose=args.verbose,
+        progress=True,
+    )
+
+    try:
+        plan = build_batch_plan(
+            input_dir=args.input_dir,
+            output_dir=args.outdir,
+            workdir=args.workdir,
+            recursive=args.recursive,
+            create_dirs=not args.dry_run,
+        )
+    except BatchError as exc:
+        _print_error(exc)
+        return 1
+
+    if args.dry_run:
+        _print_batch_plan(plan)
+        return 0
+
+    _print_batch_start(plan)
+    try:
+        result = run_batch(plan, config, fail_fast=args.fail_fast)
+    except CommandResolutionError as exc:
+        _print_error(exc)
+        return 1
+
+    _print_batch_result(result)
+
+    if args.open_finder:
+        _reveal_in_finder(result.plan.output_dir)
+
+    return 0 if result.failure_count == 0 else 1
+
+
 def _command_check(label: str, resolver) -> tuple[str, str, str]:
     try:
         command = resolver()
@@ -238,6 +314,61 @@ def _print_success(result: ConversionResult) -> None:
 
     if result.cleaned_files:
         print("中間ファイルを削除しました。残したい場合は --keep を指定してください。")
+
+
+def _print_batch_plan(plan: BatchPlan) -> None:
+    print("score2logic batch dry-run")
+    print("=========================")
+    print(f"入力ディレクトリ: {plan.input_dir}")
+    print(f"出力ディレクトリ: {plan.output_dir}")
+    print(f"作業ディレクトリ: {plan.workdir}")
+    print(f"探索: {'再帰的' if plan.recursive else '直下のみ'}")
+    print(f"対象: {len(plan.items)}件")
+    for index, item in enumerate(plan.items, start=1):
+        print(f"{index}. {item.input_path}")
+        print(f"   MIDI: {item.output_midi_path}")
+        print(f"   workdir: {item.workdir}")
+
+
+def _print_batch_start(plan: BatchPlan) -> None:
+    print("score2logic batch")
+    print("=================")
+    print(f"入力ディレクトリ: {plan.input_dir}")
+    print(f"出力ディレクトリ: {plan.output_dir}")
+    print(f"作業ディレクトリ: {plan.workdir}")
+    print(f"対象: {len(plan.items)}件")
+
+
+def _print_batch_result(result: BatchResult) -> None:
+    print("一括変換サマリ")
+    print("==============")
+    print(f"対象: {len(result.plan.items)}件")
+    print(f"実行: {result.attempted_count}件")
+    print(f"成功: {result.success_count}件")
+    print(f"失敗: {result.failure_count}件")
+
+    if result.success_count:
+        print("成功:")
+        for item in result.items:
+            if item.succeeded:
+                print(f"  OK {item.plan_item.input_path} -> {item.plan_item.output_midi_path}")
+
+    if result.failure_count:
+        print("失敗:")
+        for item in result.items:
+            if not item.succeeded:
+                print(f"  NG {item.plan_item.input_path} -> {item.plan_item.output_midi_path}")
+                print(f"     エラー: {_first_error_line(item.error)}")
+                print(f"     ログ: {item.log_path}")
+
+
+def _first_error_line(exc: Exception | None) -> str:
+    if exc is None:
+        return "(不明)"
+    message = str(exc).strip()
+    if not message:
+        return exc.__class__.__name__
+    return message.splitlines()[0]
 
 
 def _reveal_in_finder(path: Path) -> None:

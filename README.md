@@ -132,6 +132,40 @@ score2logic convert input.pdf --out output.mid
 score2logic convert input.heic --out output.mid
 ```
 
+## batch
+
+ディレクトリ内の対応ファイルをまとめてMIDIへ変換します。
+
+```bash
+score2logic batch scans --outdir midi
+```
+
+一括変換では、入力ファイルごとに出力MIDIと作業ディレクトリを分けます。
+
+- `scans/page1.png` -> `midi/page1.mid`
+- `scans/page2.heic` -> `midi/page2.mid`
+- 作業ディレクトリ: `work/page1`, `work/page2`
+
+主なオプション:
+
+- `--outdir PATH`: 出力MIDIを置くディレクトリ。必須です。
+- `--workdir PATH`: 入力ごとのログと中間ファイルを置く親ディレクトリ。省略時は `./work` です。
+- `--recursive`: 入力ディレクトリを再帰的に探索します。
+- `--fail-fast`: 最初の失敗で停止します。
+- `--dry-run`: 変換せず、対象ファイルと出力先だけ表示します。
+- `--keep`: 各入力のMusicXMLなどの中間ファイルを残します。
+- `--open`: 完了後にFinderで出力ディレクトリを表示します。
+- `--verbose`: 実行コマンドと標準出力・標準エラーを表示します。
+
+対象を確認してから実行する例:
+
+```bash
+score2logic batch scans --outdir midi --workdir work --dry-run
+score2logic batch scans --outdir midi --workdir work --keep
+```
+
+1件失敗しても、既定では残りのファイルを続行します。最後に成功件数、失敗件数、失敗した入力、ログの場所を表示します。
+
 ## ファイルの置き場所
 
 `INPUT_FILE` と `--out` は、相対パスでも絶対パスでも指定できます。相対パスは、コマンドを実行した現在のディレクトリから解決されます。
@@ -144,6 +178,8 @@ score2logic convert input.heic --out output.mid
 - HEIC/HEIF変換後PNG: HEIC/HEIF入力時のみ、作業ディレクトリ内に生成します。
 
 通常は、変換成功後にMusicXMLやHEIC/HEIF変換後PNGを削除します。確認したい場合は `--keep` を指定してください。成功時と失敗時のCLI出力には、入力、出力MIDI、作業ディレクトリ、ログの場所を表示します。
+
+`batch` の場合は、`--workdir` の下に入力ごとの作業ディレクトリを作ります。同じファイル名が複数ある場合は、`score.mid`, `score-2.mid` のように連番を付けます。
 
 例:
 

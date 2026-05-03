@@ -115,3 +115,32 @@ def test_error_output_includes_log_path(
     assert "boom" in captured.err
     assert f"ログ: {log_path}" in captured.err
     assert "まだログは作成されていません" in captured.err
+
+
+def test_batch_dry_run_prints_plan(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    input_dir = tmp_path / "scans"
+    input_dir.mkdir()
+    (input_dir / "score.png").write_bytes(b"png")
+
+    exit_code = cli.app(
+        [
+            "batch",
+            str(input_dir),
+            "--outdir",
+            str(tmp_path / "midi"),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--dry-run",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "score2logic batch dry-run" in captured.out
+    assert "対象: 1件" in captured.out
+    assert "score.mid" in captured.out
+    assert not (tmp_path / "midi").exists()
+    assert not (tmp_path / "work").exists()
